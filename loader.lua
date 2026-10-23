@@ -3,7 +3,7 @@
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
-local BASE = 'https://raw.githubusercontent.com/YOUR_USERNAME/KLZ_STAR/main/scripts/'
+local BASE = 'https://raw.githubusercontent.com/Hazx75/KLZ-STAR.XYZ/refs/heads/main/klz_star_break_steal.luau'
 local GAMES = {
     [142823690] = 'klz_star_break_steal.luau', -- Ganti ID ini dengan ID Game "Break and Steal an Egg" yang sebenarnya jika berbeda
 }
