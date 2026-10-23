@@ -1,282 +1,316 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/vaensigma/Corvus/refs/heads/main/Loader"))()
+-- ==========================================
+-- BREAK AND STEAL AN EGG - PREMIUM CUSTOM SCRIPT
+-- AUTHOR: YOUR NAME / CUSTOM BUILD
+-- VERSION: 1.0 STABLE
+-- ==========================================
 
--- CORE SCRIPT START (ENCRYPTED & OPTIMIZED)
-local Core = {}
-Core.Version = "V2.0 PREMIUM STABLE"
-Core.GameName = "Break And Steal An Egg"
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
--- [SYSTEM ANTI-CHEAT & STABILITY]
-Core.AntiCheat = {
-    Enabled = true,
-    KickThreshold = 5, -- Jumlah aksi cepat sebelum kick
-    Actions = 0,
-    Timer = 0
-}
-
-function Core:CheckStability()
-    if not Core.AntiCheat.Enabled then return end
-    Core.AntiCheat.Timer += 1
-    if Core.AntiCheat.Timer > 60 then -- Reset setiap 60 detik
-        Core.AntiCheat.Actions = 0
-        Core.AntiCheat.Timer = 0
-    end
-end
-
-function Core:IncrementAction()
-    if not Core.AntiCheat.Enabled then return end
-    Core.AntiCheat.Actions += 1
-    if Core.AntiCheat.Actions >= Core.AntiCheat.KickThreshold then
-        -- Simulasi deteksi jika terlalu cepat (opsional, bisa disesuaikan)
-        -- warn("[AntiCheat]: Action limit reached. Stabilizing...")
-        Core.AntiCheat.Actions = 0
-        wait(1) -- Jeda singkat untuk reset ritme
-    end
-end
-
--- [UI PANEL DESIGN - PREMIUM]
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/NotRexiux/RobloxUI-Library/main/UI.lua"))()
-local Window = Library:CreateWindow({
-    Title = "🥚 " .. Core.GameName .. " | " .. Core.Version,
-    Size = UDim2.new(0, 350, 0, 500),
-    Theme = "DarkNeon", -- Tema Premium
-})
-
--- Tab Menu
-local MainTab = Window:AddTab("Main Features")
-local SettingsTab = Window:AddTab("Settings & Config")
-local InfoTab = Window:AddTab("Info & Logs")
-
--- [VARIABLES]
-local Player = game.Players.LocalPlayer
-local Character = Player.Character or Player.CharacterAdded:Wait()
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
 local RootPart = Character:WaitForChild("HumanoidRootPart")
-local Mouse = Player:GetMouse()
 
--- State Variables
-local State = {
+-- [CONFIGURATION & STATE]
+local Config = {
+    TargetEgg = "LEGENDARY", -- Default target
     AutoStealV1 = false,
     AutoStealV2 = false,
     Invisible = false,
-    Aura = false,
-    TargetEgg = "LEGENDARY", -- Default target
-    UpgradeTreadmill = false,
-    UpgradeFarm = false,
-    UpgradeTools = false
+    AuraMode = false,
+    AntiCheatEnabled = true,
+    SpeedLimit = 0.5 -- Deteksi spam cepat
 }
 
--- [FUNCTIONS: UTILITIES]
-function Core:GetClosestObject(ObjectType, MaxDistance)
-    local Closest = nil
-    local Distance = MaxDistance
-    for _, Object in pairs(workspace:GetDescendants()) do
-        if Object:IsA(ObjectType) and Object.Name == ObjectType then -- Sesuaikan nama class object egg di game
-            local Dist = (RootPart.Position - Object.Position).Magnitude
-            if Dist < Distance then
-                Distance = Dist
-                Closest = Object
+-- [UI PANEL BUILDER (PURE CODE - NO LIBRARY)]
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "PremiumEggPanel"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 320, 0, 450)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -225)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.BackgroundTransparency = 0.1
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+-- Header
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+TitleBar.Parent = MainFrame
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "Title"
+TitleLabel.Size = UDim2.new(1, -20, 1, 0)
+TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "🥚 Break & Steal Pro"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 18
+TitleLabel.Parent = TitleBar
+
+-- Close Button
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Name = "Close"
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0.5, -15)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 59, 48)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.Parent = TitleBar
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Scrollable Frame for Buttons
+local ScrollingFrame = Instance.new("ScrollingFrame")
+ScrollingFrame.Name = "Content"
+ScrollingFrame.Size = UDim2.new(1, -20, 1, -60)
+ScrollingFrame.Position = UDim2.new(0, 10, 0, 50)
+ScrollingFrame.BackgroundTransparency = 1
+ScrollingFrame.ScrollBarThickness = 4
+ScrollingFrame.Parent = MainFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 8)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = ScrollingFrame
+
+-- Helper Function to Create Buttons
+local function CreateButton(text, yPos, callback, color)
+    local btn = Instance.new("TextButton")
+    btn.Name = text:gsub("%s", "") .. "Btn"
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.Position = UDim2.new(0, 0, 0, yPos * 50) -- Simple layout logic
+    btn.BackgroundColor3 = color or Color3.fromRGB(60, 60, 70)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextScaled = true
+    btn.Parent = ScrollingFrame
+    
+    btn.MouseButton1Click:Connect(callback)
+    
+    -- Hover Effect
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(80, 80, 90)}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = color or Color3.fromRGB(60, 60, 70)}):Play()
+    end)
+    
+    return btn
+end
+
+-- [FEATURES LOGIC]
+
+-- 1. AUTO STEAL V1 (Break -> Teleport Safe Zone)
+local function RunAutoStealV1()
+    while Config.AutoStealV1 do
+        if not Character or not Character.Parent then break end
+        
+        -- Cari telur terdekat
+        local closestEgg = nil
+        local minDist = 50
+        
+        for _, obj in pairs(Workspace:GetChildren()) do
+            if obj:IsA("Model") and obj.Name == "Egg" then -- Sesuaikan nama class egg di game
+                local dist = (RootPart.Position - obj:GetPrimaryPartCFrame().p).Magnitude
+                if dist < minDist then
+                    minDist = dist
+                    closestEgg = obj
+                end
             end
         end
-    end
-    return Closest
-end
-
-function Core:TeleportToSafeZone()
-    -- Logika teleport sederhana tanpa fly (menggunakan MoveTo atau Warp)
-    -- Asumsi Safe Zone ada di koordinat tertentu atau area base
-    local SafeZonePos = Vector3.new(0, 10, 0) -- GANTI DENGAN KOORDINAT SAFE ZONE ANDA
-    -- Kita gunakan MoveTo agar karakter berjalan (bukan terbang) menuju zona aman
-    Humanoid:MoveTo(SafeZonePos)
-    wait(1) -- Tunggu sampai sampai
-end
-
--- [FEATURES IMPLEMENTATION]
-
--- 1. AUTO STEAL EGG V1 (Break -> Steal -> Teleport to Safe Zone)
-local function RunAutoStealV1()
-    while State.AutoStealV1 do
-        Core:CheckStability()
-        Core:IncrementAction()
         
-        local Egg = Core:GetClosestObject("Model", 20) -- Cari objek terdekat
-        
-        if Egg then
-            -- Hancurkan Egg
-            -- Sesuaikan fungsi break egg game Anda (misal: click, atau destroy part)
-            for _, Part in pairs(Egg:GetChildren()) do
-                if Part:IsA("BasePart") then
-                    Part.Breakable.Value = true -- Contoh indikator break
-                    Part.Transparency = 0.5
+        if closestEgg then
+            -- Hancurkan Egg (Simulasi)
+            for _, part in pairs(closestEgg:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.Transparency = 0.5
+                    part.Breakable.Value = true -- Jika ada value Breakable
                 end
             end
             
-            -- Ambil Egg
-            local NewEgg = Egg:Clone()
-            NewEgg.Parent = workspace.EggsStolen -- Folder penyimpanan sementara
+            -- Ambil Egg (Clone ke inventory/base)
+            local stolen = closestEgg:Clone()
+            stolen.Parent = workspace.EggsStolen -- Folder sementara
             
             -- Teleport ke Safe Zone (Jalan kaki/Tanah)
-            Core:TeleportToSafeZone()
+            -- Kita gunakan MoveTo agar karakter berjalan normal, bukan fly
+            local safeZonePos = Vector3.new(RootPart.Position.X, 10, RootPart.Position.Z + 20) -- Ganti koordinat ini sesuai Base Aman
+            Humanoid:MoveTo(safeZonePos)
             
-            wait(0.5)
+            wait(1) -- Tunggu sampai jalan
         else
             wait(0.2)
         end
+        
+        -- Anti Lag Check
+        task.wait(0.1)
     end
 end
 
--- 2. AUTO STEAL EGG V2 (Break -> Steal -> Direct Inventory)
+-- 2. AUTO STEAL V2 (Break -> Direct Inventory)
 local function RunAutoStealV2()
-    while State.AutoStealV2 do
-        Core:CheckStability()
-        Core:IncrementAction()
+    while Config.AutoStealV2 do
+        if not Character or not Character.Parent then break end
         
-        local Egg = Core:GetClosestObject("Model", 15)
+        local closestEgg = nil
+        local minDist = 30
         
-        if Egg then
+        for _, obj in pairs(Workspace:GetChildren()) do
+            if obj:IsA("Model") and obj.Name == "Egg" then
+                local dist = (RootPart.Position - obj:GetPrimaryPartCFrame().p).Magnitude
+                if dist < minDist then
+                    minDist = dist
+                    closestEgg = obj
+                end
+            end
+        end
+        
+        if closestEgg then
             -- Hancurkan
-            for _, Part in pairs(Egg:GetChildren()) do
-                if Part:IsA("BasePart") then Part.Transparency = 0.8 end
+            for _, part in pairs(closestEgg:GetChildren()) do
+                if part:IsA("BasePart") then part.Transparency = 0.8 end
             end
             
-            -- Masukkan ke Inventory (Simulasi)
-            -- Di sini kita asumsikan ada GUI Inventory atau DataStore
-            -- Atau clone ke folder inventory player
-            local StolenItem = Egg:Clone()
-            StolenItem.Parent = Player.Backpack or Player.StarterGear
+            -- Masukkan ke Inventory Player
+            local item = closestEgg:Clone()
+            item.Parent = LocalPlayer.Backpack
             
             wait(0.3)
         else
             wait(0.2)
         end
+        task.wait(0.1)
     end
 end
 
--- 3. INVISIBLE (ON/OFF)
-function Core:SetInvisible(IsInvis)
-    State.Invisible = IsInvis
-    if IsInvis then
-        Character.HumanoidRootPart.Anchored = true -- Cegah jatuh saat invisible
-        for _, Part in pairs(Character:GetChildren()) do
-            if Part:IsA("BasePart") then
-                Part.Transparency = 1
-                Part.CanCollide = false
+-- 3. INVISIBLE SYSTEM
+function SetInvisible(state)
+    Config.Invisible = state
+    if state then
+        for _, part in pairs(Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 1
+                part.CanCollide = false
             end
         end
-        -- Sembunyikan dari player lain (Optional: menggunakan VisibilityMode atau clipping)
+        -- Cegah jatuh saat invisible
+        RootPart.Anchored = true 
     else
-        Character.HumanoidRootPart.Anchored = false
-        for _, Part in pairs(Character:GetChildren()) do
-            if Part:IsA("BasePart") then
-                Part.Transparency = 0
-                Part.CanCollide = true
+        for _, part in pairs(Character:GetChildren()) do
+            if part:Is(A "BasePart") then
+                part.Transparency = 0
+                part.CanCollide = true
             end
         end
+        RootPart.Anchored = false
     end
 end
 
--- 4. AURA (Pukul player sekitar)
-local AuraConnection = nil
-function Core:ToggleAura()
-    if State.Aura then
-        AuraConnection = RunService.Heartbeat:Connect(function()
-            for _, PlayerObj in pairs(game.Players:GetPlayers()) do
-                if PlayerObj ~= Player and PlayerObj.Character and PlayerObj.Character:FindFirstChild("HumanoidRootPart") then
-                    local Dist = (RootPart.Position - PlayerObj.Character.HumanoidRootPart.Position).Magnitude
-                    if Dist < 10 then -- Radius aura
-                        -- Animasi pukul
-                        local Tool = Player.Backpack:FindFirstChild("Bat") or Player.Character:FindFirstChild("Bat")
-                        if Tool and Tool:IsA("Tool") then
-                            Tool.Handle.Anchored = false
-                            Tool.Handle.CFrame = Tool.Handle.CFrame * CFrame.Angles(0, math.rad(90), 0)
+-- 4. AURA SYSTEM
+local AuraConn = nil
+function ToggleAura(state)
+    Config.AuraMode = state
+    if state then
+        AuraConn = RunService.Heartbeat:Connect(function()
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    local dist = (RootPart.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+                    if dist < 10 then
+                        -- Animasi Pukul
+                        local tool = LocalPlayer.Backpack:FindFirstChild("Bat") or LocalPlayer.Character:FindFirstChild("Bat")
+                        if tool and tool:IsA("Tool") then
+                            local handle = tool.Handle or tool
+                            handle.CFrame = handle.CFrame * CFrame.Angles(0, math.rad(90), 0)
                             wait(0.1)
-                            Tool.Handle.CFrame = Tool.Handle.CFrame * CFrame.Angles(0, math.rad(-90), 0)
+                            handle.CFrame = handle.CFrame * CFrame.Angles(0, math.rad(-90), 0)
                             
-                            -- Damage simulasi
-                            local Hum = PlayerObj.Character:FindFirstChild("Humanoid")
-                            if Hum then Hum.Health -= 5 end
+                            -- Damage
+                            local hum = plr.Character:FindFirstChild("Humanoid")
+                            if hum then hum.Health -= 10 end
                         end
                     end
                 end
             end
         end)
     else
-        if AuraConnection then AuraConnection:Disconnect() end
+        if AuraConn then AuraConn:Disconnect() end
     end
 end
 
--- 5. UPGRADES (Terpisah)
-function Core:Upgrade(Type)
-    Core:IncrementAction()
-    if Type == "Treadmill" then
-        print("Upgrading Treadmill...")
-        -- Logic upgrade treadmill
-    elseif Type == "Farm" then
-        print("Upgrading Farm...")
-    elseif Type == "Tools" then
-        print("Upgrading Tools...")
-    end
+-- 5. UPGRADE SYSTEM
+function UpgradeItem(type)
+    print("[System] Upgrading " .. type .. "...")
+    -- Logic upgrade spesifik bisa ditambahkan di sini
+    -- Contoh: memanggil RemoteEvent game
+    -- remote:FireServer("Upgrade", type)
 end
 
 -- [UI BINDING]
 
--- Main Tab
-MainTab:AddButton("AUTO STEAL V1\n(Break -> Safe Zone)", function()
-    State.AutoStealV1 = not State.AutoStealV1
-    State.AutoStealV2 = false -- Matikan V2 jika V1 aktif
-    if State.AutoStealV1 then
-        spawn(RunAutoStealV1)
-        print("✅ Auto Steal V1 ON")
-    else
-        print("❌ Auto Steal V1 OFF")
-    end
-end):SetBackgroundColor(Color3.fromRGB(0, 100, 255))
+-- Main Features
+CreateButton("AUTO STEAL V1\n(Break -> Safe Zone)", 1, function()
+    Config.AutoStealV1 = not Config.AutoStealV1
+    Config.AutoStealV2 = false
+    spawn(RunAutoStealV1)
+    print(Config.AutoStealV1 and "✅ V1 ON" or "❌ V1 OFF")
+end, Color3.fromRGB(0, 120, 255))
 
-MainTab:AddButton("AUTO STEAL V2\n(Break -> Inventory)", function()
-    State.AutoStealV2 = not State.AutoStealV2
-    State.AutoStealV1 = false -- Matikan V1 jika V2 aktif
-    if State.AutoStealV2 then
-        spawn(RunAutoStealV2)
-        print("✅ Auto Steal V2 ON")
-    else
-        print("❌ Auto Steal V2 OFF")
-    end
-end):SetBackgroundColor(Color3.fromRGB(255, 165, 0))
+CreateButton("AUTO STEAL V2\n(Break -> Inventory)", 2, function()
+    Config.AutoStealV2 = not Config.AutoStealV2
+    Config.AutoStealV1 = false
+    spawn(RunAutoStealV2)
+    print(Config.AutoStealV2 and "✅ V2 ON" or "❌ V2 OFF")
+end, Color3.fromRGB(255, 165, 0))
 
-MainTab:AddSlider("Target Egg Priority", 1, 5, 1, function(val)
-    local Eggs = {"SECRET", "DIVINE", "LEGENDARY", "MYTHIC", "COMMON"}
-    State.TargetEgg = Eggs[math.floor(val)]
-    print("Target Egg: " .. State.TargetEgg)
-end)
+CreateButton("TARGET EGG: " .. Config.TargetEgg, 3, function()
+    -- Cycle through eggs
+    local eggs = {"SECRET", "DIVINE", "LEGENDARY", "MYTHIC", "COMMON"}
+    local idx = table.find(eggs, Config.TargetEgg)
+    idx = (idx % #eggs) + 1
+    Config.TargetEgg = eggs[idx]
+    -- Update button text (simple way)
+    -- In real scenario, you'd update the label directly
+end, Color3.fromRGB(100, 100, 100))
 
--- Settings Tab
-SettingsTab:AddToggle("Invisibility Mode", false, function(bool)
-    Core:SetInvisible(bool)
-    if bool then print("👻 Invisible ON") else print("👁️ Visible ON") end
-end)
+-- Settings
+CreateButton("INVISIBLE: " .. tostring(Config.Invisible), 4, function()
+    SetInvisible(not Config.Invisible)
+end, Color3.fromRGB(150, 150, 150))
 
-SettingsTab:AddToggle("Aura Attack", false, function(bool)
-    State.Aura = bool
-    Core:ToggleAura()
-    if bool then print("⚔️ Aura ON") else print("🛡️ Aura OFF") end
-end)
+CreateButton("AURA MODE: " .. tostring(Config.AuraMode), 5, function()
+    ToggleAura(not Config.AuraMode)
+end, Color3.fromRGB(200, 50, 50))
 
-SettingsTab:AddDropdown("Select Target Egg", {"SECRET", "DIVINE", "LEGENDARY", "MYTHIC", "COMMON"}, function(selected)
-    State.TargetEgg = selected
-    print("Target Changed: " .. selected)
-end)
+CreateButton("UPGRADE TREADMILL", 6, function()
+    UpgradeItem("Treadmill")
+end, Color3.fromRGB(50, 200, 50))
 
-SettingsTab:AddButton("Upgrade Treadmill", function() Core:Upgrade("Treadmill") end)
-SettingsTab:AddButton("Upgrade Farm", function() Core:Upgrade("Farm") end)
-SettingsTab:AddButton("Upgrade Tools", function() Core:Upgrade("Tools") end)
+CreateButton("UPGRADE FARM", 7, function()
+    UpgradeItem("Farm")
+end, Color3.fromRGB(50, 200, 50))
 
-SettingsTab:AddToggle("Anti-Cheat System", true, function(bool)
-    Core.AntiCheat.Enabled = bool
-    print("Anti-Cheat: " .. (bool and "ON" or "OFF"))
-end)
+CreateButton("UPGRADE TOOLS", 8, function()
+    UpgradeItem("Tools")
+end, Color3.fromRGB(50, 200, 50))
 
--- Info Tab
-InfoTab:AddLabel("Script Version: " .. Core.Version)
-InfoTab:AddLabel("Status: Stable & Optimized")
-InfoTab:AddLabel("Executor Support: Delta / Arceus X Neo")
+CreateButton("ANTI-CHEAT: " .. tostring(Config.AntiCheatEnabled), 9, function()
+    Config.AntiCheatEnabled = not Config.AntiCheatEnabled
+end, Color3.fromRGB(100, 100, 100))
 
-print("🚀 Script Loaded Successfully! Panel created.")
+print("🚀 Custom Premium Script Loaded Successfully!")
